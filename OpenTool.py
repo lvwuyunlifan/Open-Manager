@@ -20,15 +20,17 @@ class PopupDialog(tk.Toplevel):
         sw = self.winfo_screenwidth()         # 得到屏幕宽度
         sh = self.winfo_screenheight() - 100  # 得到屏幕高度
         ww = 400
-        wh = 110
+        wh = 130
         x = (sw - ww) / 2
         y = (sh - wh) / 2
         self.geometry("%dx%d+%d+%d" %(ww, wh, x, y)) # 居中显示
         self.resizable(0,0) #禁止缩放窗口
         # self.attributes("-toolwindow", 1)
         # self.wm_attributes('-topmost', 1)
-        self.title('添加路径')
+        self.title('添加文件路径/网址')
         self.parent = parent  # 显示式地保留父窗口
+        print('parent: ', self.parent)
+        print('parsent_urllist', parent.urllist)
         frame = tk.Frame(self)
         frame.grid()
 
@@ -45,21 +47,32 @@ class PopupDialog(tk.Toplevel):
         self.url = tk.StringVar()
         tk.Entry(frame,textvariable=self.url,width=50).grid(row=1,
                 column=1,columnspan=4, sticky=W)
+        
+        # 第三行，添加备注
+        tk.Label(frame,text='备注：').grid(row=2, column=0, sticky=E)
+        self.remark = tk.StringVar()
+        tk.Entry(frame,textvariable=self.url,width=50).grid(row=2,
+                column=1,columnspan=4, sticky=W)
+        
         # 第三行
-        tk.Button(frame,text="确定", command=self.ok).grid(row=2, column=2, sticky=S,pady=10)
-        tk.Button(frame,text="取消", command=self.cancel).grid(row=2, column=3, sticky=S,pady=10)
+        tk.Button(frame,text="确定", command=self.ok).grid(row=3, column=2, sticky=S,pady=10)
+        tk.Button(frame,text="取消", command=self.cancel).grid(row=3, column=3, sticky=S,pady=10)
 
     def ok(self):
+        # 名称
         urlname = self.name.get().strip()
+        # 路径
         url = self.url.get().strip()
+        # 备注
+        urlremark = self.remark.get().strip()
 
         if urlname == '' or url == '':
-            messagebox.showwarning('警告', '输入不能为空！')
+            messagebox.showwarning('您好', '名称和路径不能为空~~~')
             return
 
         # if self.parent.urllist.has_key(self.parent.name): # has_key() 方法
         if urlname in self.parent.urllist:
-            if messagebox.askyesno('提示', '名称 ‘%s’ 已存在，将会覆盖，是否继续？' %urlname):
+            if messagebox.askyesno('提示：', '名称 ‘%s’ 已存在，将会覆盖，是否继续？' %urlname):
                 pass
             else:
                 return
