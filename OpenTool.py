@@ -19,8 +19,13 @@ class PopupDialog(tk.Toplevel):
         super().__init__()
         sw = self.winfo_screenwidth()         # 得到屏幕宽度
         sh = self.winfo_screenheight() - 100  # 得到屏幕高度
+        # self.update()
+        # aw = self.winfo_x()
+        # ah = self.winfo_y()
+        # print('sw, sh:', (aw, ah))
+        # print('sw, sh:', (sw, sh))
         ww = 400
-        wh = 130
+        wh = 180
         x = (sw - ww) / 2
         y = (sh - wh) / 2
         self.geometry("%dx%d+%d+%d" %(ww, wh, x, y)) # 居中显示
@@ -43,20 +48,20 @@ class PopupDialog(tk.Toplevel):
         tk.Entry(frame, textvariable=self.name, width=50).grid(row=0,
                 column=1, columnspan=4, sticky=W, pady=8)
         # 第二行
-        tk.Label(frame,text='路径：').grid(row=1, column=0, sticky=E)
+        tk.Label(frame,text='路径：').grid(row=1, column=0, sticky=E, pady=8)
         self.url = tk.StringVar()
         tk.Entry(frame,textvariable=self.url,width=50).grid(row=1,
-                column=1,columnspan=4, sticky=W)
-        
+                column=1,columnspan=4, sticky=W, pady=8)
+            
         # 第三行，添加备注
-        tk.Label(frame,text='备注：').grid(row=2, column=0, sticky=E)
+        tk.Label(frame,text='备注：').grid(row=2, column=0, sticky=E, pady=8, rowspan=2)
         self.remark = tk.StringVar()
-        tk.Entry(frame,textvariable=self.url,width=50).grid(row=2,
-                column=1,columnspan=4, sticky=W)
-        
+        tk.Text(frame,width=50, height=3).grid(row=2,column=1,columnspan=4, rowspan=2, sticky=W, pady=8)
+
+
         # 第三行
-        tk.Button(frame,text="确定", command=self.ok).grid(row=3, column=2, sticky=S,pady=10)
-        tk.Button(frame,text="取消", command=self.cancel).grid(row=3, column=3, sticky=S,pady=10)
+        tk.Button(frame,text="确定", command=self.ok).grid(row=5, column=2, sticky=S,pady=10)
+        tk.Button(frame,text="取消", command=self.cancel).grid(row=5, column=3, sticky=S,pady=10)
 
     def ok(self):
         # 名称
@@ -65,6 +70,7 @@ class PopupDialog(tk.Toplevel):
         url = self.url.get().strip()
         # 备注
         urlremark = self.remark.get().strip()
+        print(urlname, url, urlremark)
 
         if urlname == '' or url == '':
             messagebox.showwarning('您好', '名称和路径不能为空~~~')
@@ -81,16 +87,24 @@ class PopupDialog(tk.Toplevel):
         # self.parent.name = urlname
         # self.parent.url = url
 
-        self.parent.urllist[urlname] = url
+        self.parent.urllist[urlname] = [url, urlremark]
 
         # 重新加载列表
         self.parent.listbox.delete(0, END)
         for item in self.parent.urllist:
             self.parent.listbox.insert(END, item)
+        print('sss: ', self.parent.urllist)
+        self.savaUrllist()
         self.destroy()  # 銷燬窗口
 
     def cancel(self):
         self.destroy()
+
+    def savaUrllist(self):
+        with open('openlist.json', 'w', encoding='utf-8') as f:
+            json.dump(self.parent.urllist,f, ensure_ascii=False, indent=2)
+
+        print('文件保存成功......')
 
 # 主窗体
 class Application(tk.Frame):
@@ -98,6 +112,7 @@ class Application(tk.Frame):
         super().__init__()
         self.master = master
         self.pack()
+        
 
         # 获取列表
         self.urllist = self.readUrlList()
@@ -123,9 +138,21 @@ class Application(tk.Frame):
         with open('openlist.json', 'w', encoding='utf-8') as f:
             json.dump(self.urllist,f, ensure_ascii=False, indent=2)
 
-        print('文件保存成功。')
+        print('退出成功，文件保存成功。')
+
+    def callback(self):
+        print("~被调用了~")
 
     def createWidgets(self):
+        
+        # 创建一个弹出菜单， 绑定到右键上
+        self.menu = Menu(self, tearoff=False)
+        self.menu.add_command(label="查看备注", command=self.showRemark)
+        self.menu.add_command(label="添加书签", command=self.additem)
+        self.menu.add_command(label="移动书签", command=self.moveitem)
+        self.menu.add_command(label="删除书签", command=self.deleteitem)
+
+        
         # 创建搜索框
         self.frame1 = Frame()
         self.frame1.pack(side=TOP, fill=X)
@@ -160,7 +187,7 @@ class Application(tk.Frame):
         # 加载地址列表
         for item in self.urllist:
             self.listbox.insert(END, item)  # 从尾部插入
-
+ 
         # 添加事件处理
         self.doevent()
 
@@ -169,8 +196,9 @@ class Application(tk.Frame):
         self.keywdbox.bind("<BackSpace>",self.showlistAll)
         self.listbox.bind('<Double-Button-1>',self.openurl) # 双击打开地址
         self.listbox.bind('<Return>',self.openurl) # 按Enter键打开地址
+        self.listbox.bind('<Button-3>', self.showMenu)  # 点击右键，显示菜单
 
-
+    # 添加
     def additem(self):
         pw = PopupDialog(self)
         self.wait_window(pw)  # 這一句很重要！！！
@@ -179,6 +207,7 @@ class Application(tk.Frame):
         # r = simpledialog.askstring('Python Tkinter', 'Input String',
         #                            initialvalue='Python Tkinter')
 
+    # 删除书签
     def deleteitem(self):
         index = self.listbox.curselection()
         try:
@@ -196,6 +225,13 @@ class Application(tk.Frame):
             # messagebox.showinfo('No', 'Quit has been cancelled')
             return
 
+    # 移动书签
+    def moveitem(self):
+        pass
+
+    # 查看备注
+    def showRemark(self):
+        pass
         # for item in index:
         #     print(self.listbox.get(item))
         #     self.listbox.delete(item)
@@ -205,7 +241,7 @@ class Application(tk.Frame):
 
     def openurl(self,event):
         urlname = self.listbox.get(self.listbox.curselection())
-        url = self.urllist[urlname] # 根据key值获取对应url值
+        url = self.urllist[urlname][0] # 根据key值获取对应url值
 
         if url is not None and url != '':
             webbrowser.open(url)
@@ -222,6 +258,7 @@ class Application(tk.Frame):
 
     def showlist(self, event):
         keywd = self.keywdbox.get().strip()
+        print('keywd: ', keywd)
         if keywd:
             self.listbox.delete(0, END)
             # print(urllist)
@@ -233,9 +270,22 @@ class Application(tk.Frame):
             for item in self.urllist:
                 self.listbox.insert(END, item)  # 空字符时，加载所有列表
     
+    # 显示菜单
+    def showMenu(self, event):
+        # urlname = self.listbox.get(self.listbox.curselection())
+        # print('show urlname: ', urlname)
+        # remark = self.urllist[urlname][1]
+        
+        self.menu.post(event.x_root, event.y_root)
+
+    
 
 if __name__ == '__main__':
     root = Tk()  # 构造窗体
+    root.update()
+    aw = root.winfo_x()
+    ah = root.winfo_y()
+    print('sw, sh:', (aw, ah))
     root.title('Open Everything')
     root.iconbitmap('opentool.ico')
 
